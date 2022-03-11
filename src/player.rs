@@ -18,7 +18,7 @@ pub struct Player {
 impl Default for Player {
     fn default() -> Self {
         let image = Texture2D::from_file_with_format(
-            include_bytes!("../assets/sprites/space_ships/01/Spaceship_01_BLUE.png"),
+            include_bytes!("../assets/sprites/space_ships/player.png"),
             None,
         );
         let turret_image =
