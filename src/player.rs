@@ -1,9 +1,6 @@
 use macroquad::prelude::*;
-
-mod projectile {
-    include!("projectile.rs");
-}
-use crate::player::projectile::get_movement;
+use std::collections::HashMap;
+use crate::projectile;
 
 pub struct Player {
     pub vec: Vec2,
@@ -14,6 +11,8 @@ pub struct Player {
     pub turret_params: DrawTextureParams,
     pub last_rotation_target: f32,
     pub camera: Vec2,
+    pub bullet_gen_count: f32,
+    pub bullet_gen_cool_down: f32,
 }
 
 impl Default for Player {
@@ -50,22 +49,59 @@ impl Default for Player {
             turret_params: turret_params,
             last_rotation_target: 0.0,
             camera: Vec2::new(0.0, 0.0),
+            bullet_gen_count: 0.0,
+            bullet_gen_cool_down: 0.2,
         }
     }
 }
 
 impl Player {
-    fn handle_turret(&mut self) {
-        self.turret_params.rotation = Vec2::new(self.vec.x - self.camera.x, 
-                            self.vec.y - self.camera.y)
-        .angle_between(Vec2::from(mouse_position())) + 1.6;
+    fn handle_turret(&mut self, bullets: &mut Vec<projectile::Bullet>, raw_dt: f32) {
+        let mouse_pos = mouse_position();
+        let mouse_pos = [mouse_pos.0, mouse_pos.1];
+        let values = projectile::get_movement(
+            [
+                self.vec.x - self.camera.x + 35.0,
+                self.vec.y - self.camera.y + 35.0,
+            ],
+            mouse_pos,
+            20.0,
+        );
+        let bullet_dx = values[0];
+        let bullet_dy = values[1];
+        self.turret_params.rotation = values[2] + 1.6;
 
-        if is_mouse_button_pressed(MouseButton::Left) {
-            println!("Yes?");
+        if is_mouse_button_down(MouseButton::Left) {
+            self.bullet_gen_count += raw_dt;
+
+            if self.bullet_gen_count > self.bullet_gen_cool_down {
+                bullets.push(projectile::Bullet {
+                    distance: 600.0,
+                    damage: 30.0,
+                    vec: Vec2::new(self.vec.x + 35.0, self.vec.y + 35.0),
+                    movement: Vec2::new(bullet_dx, bullet_dy),
+                    color: Color::from_rgba(0, 255, 255, 255),
+                    texture_params: DrawTextureParams {
+                        dest_size: Some(Vec2::new(10.0, 10.0)),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                });
+                self.bullet_gen_count = 0.0;
+            }
+        } else {
+            self.bullet_gen_count = 0.0;
         }
     }
 
-    pub fn update(&mut self, dt: f32) {
+    pub fn update(
+        &mut self,
+        bullets: &mut Vec<projectile::Bullet>,
+        event_info: &HashMap<&str, f32>,
+    ) {
+        let dt = event_info["dt"];
+        let raw_dt = event_info["raw dt"];
+
         // Check desired rotation based on input
         let mut target_rotation: f32 = self.last_rotation_target;
         let (mut dx, mut dy) = (0.0, 0.0);
@@ -135,7 +171,7 @@ impl Player {
             dx = 0.0;
             dy = 0.0;
         }
-        self.handle_turret();
+        self.handle_turret(bullets, raw_dt);
 
         self.vec.x += dx;
         self.vec.y += dy;

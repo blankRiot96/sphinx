@@ -1,11 +1,13 @@
 use macroquad::prelude::*;
+use std::collections::HashMap;
 use std::time;
 
-#[allow(unused_imports)]
-use crate::effects::BackgroundStars;
-use crate::player::Player;
 mod effects;
 mod player;
+mod projectile;
+use crate::effects::BackgroundStars;
+use crate::player::Player;
+use crate::projectile::Bullet;
 
 fn return_conf() -> Conf {
     Conf {
@@ -31,16 +33,23 @@ async fn main() {
     let mut background_effect = BackgroundStars {
         ..Default::default()
     };
+
+    let mut bullets: Vec<Bullet> = Vec::new();
+    let mut event_info: HashMap<&str, f32> = HashMap::new();
+    event_info.insert("dt", 0.0);
+    event_info.insert("raw dt", 0.0);
     loop {
         // Delta time calculation
         let start = time::Instant::now();
+        // Camera smoothness
+        camera[0] += (player.vec.x - camera[0] - (screen_width() / 2.0)) * 0.03;
+        camera[1] += (player.vec.y - camera[1] - (screen_height() / 2.0)) * 0.03;
 
-        player.update(dt);
+        player.update(&mut bullets, &event_info);
 
         clear_background(BLACK);
         background_effect.draw(camera);
         player.draw(camera);
-        draw_rectangle(50.0 - camera[0], 50.0 - camera[1], 60.0, 75.0, RED);
         draw_circle_lines(
             border_center[0] - camera[0],
             border_center[1] - camera[1],
@@ -49,13 +58,19 @@ async fn main() {
             RED,
         );
 
-        // Camera smoothness
-        camera[0] += (player.vec.x - camera[0] - (screen_width() / 2.0)) * 0.03;
-        camera[1] += (player.vec.y - camera[1] - (screen_height() / 2.0)) * 0.03;
+        // Bullets
+        for bullet in &mut bullets {
+            bullet.update(dt);
+            bullet.draw(camera);
+        }
+        bullets.retain(|x| x.alive);
 
         // Delta time calculation
         let raw_dt = start.elapsed().as_secs_f32();
         dt = raw_dt * 60.0;
+
+        event_info.insert("dt", dt);
+        event_info.insert("raw dt", raw_dt);
         next_frame().await
     }
 }
