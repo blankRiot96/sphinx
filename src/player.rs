@@ -1,6 +1,6 @@
+use crate::projectile;
 use macroquad::prelude::*;
 use std::collections::HashMap;
-use crate::projectile;
 
 pub struct Player {
     pub vec: Vec2,
@@ -57,13 +57,10 @@ impl Default for Player {
 
 impl Player {
     fn handle_turret(&mut self, bullets: &mut Vec<projectile::Bullet>, raw_dt: f32) {
-        let mouse_pos = mouse_position();
-        let mouse_pos = [mouse_pos.0, mouse_pos.1];
+        let mouse_pos = Vec2::from(mouse_position());
+        // let mouse_pos = [mouse_pos.0, mouse_pos.1];
         let values = projectile::get_movement(
-            [
-                self.vec.x - self.camera.x + 35.0,
-                self.vec.y - self.camera.y + 35.0,
-            ],
+            self.vec - self.camera + Vec2::from([35.0, 35.0]),
             mouse_pos,
             20.0,
         );

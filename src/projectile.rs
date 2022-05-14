@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use macroquad::prelude::*;
 
-pub fn get_movement(pos: [f32; 2], target: [f32; 2], speed: f32) -> [f32; 3] {
+pub fn get_movement(pos: Vec2, target: Vec2, speed: f32) -> [f32; 3] {
     let angle = f32::atan2(target[1] - pos[1], target[0] - pos[0]);
     let dx = angle.cos() * speed;
     let dy = angle.sin() * speed;
