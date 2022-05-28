@@ -29,7 +29,7 @@ impl Default for Star {
 impl Star {
     fn draw(&mut self, camera: Vec2) {
         self.texture_params.rotation += 0.01;
-        self.texture_params.rotation = self.texture_params.rotation % 6.2;
+        self.texture_params.rotation %= 6.2;
         draw_texture_ex(
             self.image.unwrap(),
             self.vec.x - camera[0],
@@ -60,7 +60,7 @@ impl Default for BackgroundStars {
                 ..Default::default()
             });
         }
-        BackgroundStars { stars: stars }
+        BackgroundStars { stars }
     }
 }
 

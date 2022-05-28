@@ -11,7 +11,7 @@ pub fn get_movement(pos: Vec2, target: Vec2, speed: f32) -> [f32; 3] {
 
 pub struct Bullet {
     pub distance: f32,
-    pub damage: f32,
+    pub damage: i32,
     pub vec: Vec2,
     pub movement: Vec2,
     pub color: Color,
@@ -26,7 +26,7 @@ impl Default for Bullet {
         let default_coordinate = Vec2::new(0.0, 0.0);
         Bullet {
             distance: 0.0,
-            damage: 10.0,
+            damage: 0,
             vec: default_coordinate,
             movement: default_coordinate,
             texture_params: DrawTextureParams {

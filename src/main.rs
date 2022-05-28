@@ -4,13 +4,13 @@ use std::collections::HashMap;
 use std::time;
 
 mod effects;
+mod entities;
 mod player;
 mod projectile;
-mod entities;
 use crate::effects::BackgroundStars;
 use crate::player::Player;
 use crate::projectile::Bullet;
-use entities::Entity;
+use entities::{Entities, BasicEnemy};
 
 fn return_conf() -> Conf {
     Conf {
@@ -26,8 +26,10 @@ fn handle_screen_shake(screen_shake: &mut f32, dt: f32, camera: &mut Vec2, scree
 
     let mut render_offset = Vec2::new(0.0, 0.0);
     if screen_shake > &mut 0.0 {
-        render_offset.x = (::rand::thread_rng().gen_range(0..screen_shake_val * 2) - screen_shake_val) as f32;
-        render_offset.y = (::rand::thread_rng().gen_range(0..screen_shake_val * 2) - screen_shake_val) as f32;
+        render_offset.x =
+            (::rand::thread_rng().gen_range(0..screen_shake_val * 2) - screen_shake_val) as f32;
+        render_offset.y =
+            (::rand::thread_rng().gen_range(0..screen_shake_val * 2) - screen_shake_val) as f32;
     }
 
     *camera += render_offset;
@@ -49,30 +51,15 @@ async fn main() {
         ..Default::default()
     };
 
-    let mut spaceship_assets: HashMap<&str, Texture2D> = HashMap::new();
-    spaceship_assets.insert(
-        "basic",
-        Texture2D::from_file_with_format(
-            include_bytes!("../assets/sprites/space_ships/basic.png"),
-            None,
-        ),
-    );
     let mut screen_shake: f32 = 0.0;
-    let mut screen_shake_val = 0; 
+    let mut screen_shake_val = 0;
 
-    let mut basic_spaceship = Entity {
-            movement: Vec2::new(0.0, 0.0),
-            vec: Vec2::new(0.0, 0.0),
-            angle: 0.0,
-            image: spaceship_assets["basic"],
-            texture_params: DrawTextureParams {
-                dest_size: Option::from(Vec2::new(100.0, 100.0)),
-                ..Default::default()
-            },
-            speed: 3.5
-    };
+    let mut basic_spaceship = Entities::Basic(BasicEnemy {
+        ..Default::default()
+    });
 
     let mut bullets: Vec<Bullet> = Vec::new();
+    let mut entities: Vec<&mut Entities> = vec![&mut basic_spaceship];
     let mut event_info: HashMap<&str, f32> = HashMap::new();
     event_info.insert("dt", 0.0);
     event_info.insert("raw dt", 0.0);
@@ -101,21 +88,32 @@ async fn main() {
             bullet.update(dt);
             bullet.draw(camera);
 
-            if bullet.vec.distance(basic_spaceship.vec) < 100.0 {
-                screen_shake = 30.0;
-                screen_shake_val = 3;
+            for entity in entities {
+                if bullet.vec.distance(entity.entity.vec) < 100.0 {
+                    screen_shake = 30.0;
+                    screen_shake_val = 3;
+                    entity.entity.hp -= bullet.damage;
+                    bullet.alive = false;
+                }
             }
         }
         bullets.retain(|x| x.alive);
 
         // Screen shake
         if screen_shake > 0.0 {
-            handle_screen_shake(&mut screen_shake, event_info["dt"], &mut camera, screen_shake_val);
+            handle_screen_shake(
+                &mut screen_shake,
+                event_info["dt"],
+                &mut camera,
+                screen_shake_val,
+            );
         }
 
-        // Make space ship move towards player.
-        basic_spaceship.update(player.vec, &event_info);
-        basic_spaceship.draw(camera);
+        for entity in &mut entities {
+            entity.update(player.vec, &event_info);
+            entity.draw(camera);
+        }
+        entities.retain(|x| x.hp > 0);
 
         // Delta time calculation
         let raw_dt = start.elapsed().as_secs_f32();

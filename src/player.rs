@@ -43,10 +43,10 @@ impl Default for Player {
         Player {
             vec: Vec2::new(100.0, 100.0),
             speed: 5.5,
-            image: image,
-            turret_image: turret_image,
+            image,
+            turret_image,
             texture_params: text_params,
-            turret_params: turret_params,
+            turret_params,
             last_rotation_target: 0.0,
             camera: Vec2::new(0.0, 0.0),
             bullet_gen_count: 0.0,
@@ -74,7 +74,7 @@ impl Player {
             if self.bullet_gen_count > self.bullet_gen_cool_down {
                 bullets.push(projectile::Bullet {
                     distance: 600.0,
-                    damage: 30.0,
+                    damage: 30,
                     vec: Vec2::new(self.vec.x + 35.0, self.vec.y + 35.0),
                     movement: Vec2::new(bullet_dx, bullet_dy),
                     color: Color::from_rgba(0, 255, 255, 255),
@@ -138,13 +138,12 @@ impl Player {
                 } else {
                     self.texture_params.rotation -= 0.8;
                 }
+            } else if dx > 0.0 {
+                self.texture_params.rotation -= 0.8;
             } else {
-                if dx > 0.0 {
-                    self.texture_params.rotation -= 0.8;
-                } else {
-                    self.texture_params.rotation += 0.8;
-                }
+                self.texture_params.rotation += 0.8;
             }
+
             dx *= 1.414 / 2.0;
             dy *= 1.414 / 2.0;
         }
