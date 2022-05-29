@@ -1,4 +1,3 @@
-use ::rand::Rng;
 use macroquad::prelude::*;
 use std::collections::HashMap;
 use std::time;
@@ -7,10 +6,13 @@ mod effects;
 mod entities;
 mod player;
 mod projectile;
+mod utils;
 use crate::effects::BackgroundStars;
 use crate::player::Player;
 use crate::projectile::Bullet;
-use entities::{Entities, BasicEnemy};
+use entities::{Entity, Entities};
+use utils::{handle_screen_shake, Time};
+
 
 fn return_conf() -> Conf {
     Conf {
@@ -21,19 +23,6 @@ fn return_conf() -> Conf {
     }
 }
 
-fn handle_screen_shake(screen_shake: &mut f32, dt: f32, camera: &mut Vec2, screen_shake_val: i32) {
-    *screen_shake -= 1.3 * dt;
-
-    let mut render_offset = Vec2::new(0.0, 0.0);
-    if screen_shake > &mut 0.0 {
-        render_offset.x =
-            (::rand::thread_rng().gen_range(0..screen_shake_val * 2) - screen_shake_val) as f32;
-        render_offset.y =
-            (::rand::thread_rng().gen_range(0..screen_shake_val * 2) - screen_shake_val) as f32;
-    }
-
-    *camera += render_offset;
-}
 
 #[macroquad::main(return_conf)]
 async fn main() {
@@ -54,12 +43,14 @@ async fn main() {
     let mut screen_shake: f32 = 0.0;
     let mut screen_shake_val = 0;
 
-    let mut basic_spaceship = Entities::Basic(BasicEnemy {
-        ..Default::default()
-    });
 
     let mut bullets: Vec<Bullet> = Vec::new();
-    let mut entities: Vec<&mut Entities> = vec![&mut basic_spaceship];
+    let mut entities: Vec<Entity> = Vec::new();
+    let mut entity_spawn_time: Time = Time {
+        time_to_pass: 1.4,
+        ..Default::default()
+    };
+
     let mut event_info: HashMap<&str, f32> = HashMap::new();
     event_info.insert("dt", 0.0);
     event_info.insert("raw dt", 0.0);
@@ -88,16 +79,21 @@ async fn main() {
             bullet.update(dt);
             bullet.draw(camera);
 
-            for entity in entities {
-                if bullet.vec.distance(entity.entity.vec) < 100.0 {
+            for entity in &mut entities {
+                if bullet.vec.distance(entity.vec) < 100.0 {
                     screen_shake = 30.0;
                     screen_shake_val = 3;
-                    entity.entity.hp -= bullet.damage;
+                    entity.hp -= bullet.damage;
                     bullet.alive = false;
                 }
             }
         }
         bullets.retain(|x| x.alive);
+
+        // Spawn enemies
+        if entity_spawn_time.update() {
+            entities.push(Entity::new(Entities::SpeedyEnemy));
+        }
 
         // Screen shake
         if screen_shake > 0.0 {
